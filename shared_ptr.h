@@ -1,26 +1,17 @@
-/**
- * @file  shared_ptr.h
- * @brief shared_ptr is a minimal implementation of smart pointer, a subset of the C++11 std::shared_ptr or boost::shared_ptr.
- *
- * Copyright (c) 2021-2022 YuxiangZhu (18842550358@163.com)
- *
- */
 #pragma once
 #include <exception>
 #include <algorithm>
 
+#ifndef _NODISCARD
+#define _NODISCARD [[nodiscard]]
+#endif
+
 class _Ref_count_base
 {
 public:
-	constexpr _Ref_count_base() noexcept :
-		_Count(nullptr)
-	{
-	}
+	constexpr _Ref_count_base() noexcept : _Count(nullptr) { }
 
-	_Ref_count_base(const _Ref_count_base& _Ptr) noexcept :
-		_Count(_Ptr._Count)
-	{
-	}
+	_Ref_count_base(const _Ref_count_base& _Ptr) noexcept : _Count(_Ptr._Count) { }
 
 	long _Use_count() noexcept
 	{
@@ -81,12 +72,12 @@ public:
 	_Ptr_base(const _Ptr_base&) = delete;
 	_Ptr_base& operator=(const _Ptr_base&) = delete;
 	
-	long use_count() const noexcept
+	_NODISCARD long use_count() const noexcept
 	{
 		return nullptr == _Rep ? 0 : _Rep->_Use_count();
 	}
 
-	_Elem_type* get() const noexcept
+	_NODISCARD _Elem_type* get() const noexcept
 	{
 		return _Ptr;
 	}
@@ -96,17 +87,17 @@ public:
 		return _Ptr != nullptr;
 	}
 
-	bool unique() const noexcept
+	_NODISCARD bool unique() const noexcept
 	{
 		return (1 == this->use_count());
 	}
 
-	_Elem_type* operator->() const noexcept
+	_NODISCARD _Elem_type* operator->() const noexcept
 	{
 		return this->_Ptr;
 	}
 
-	_Elem_type& operator*() const noexcept
+	_NODISCARD _Elem_type& operator*() const noexcept
 	{
 		return *this->_Ptr;
 	}
@@ -151,14 +142,6 @@ protected:
 	}
 
 	template <typename _Ty2>
-	void _Alias_construct_from(const _Ptr_base<_Ty2>& _Other) noexcept
-	{
-		_Other._Incref();
-		this->_Ptr = static_cast<_Ptr_base<_Ty>::_Elem_type*>(_Other._Ptr);
-		this->_Rep = _Other._Rep;
-	}
-
-	template <typename _Ty2>
 	void _Alias_construct_from(const _Ptr_base<_Ty2>& _Other, _Elem_type* _Px) noexcept
 	{
 		_Other._Incref();
@@ -170,15 +153,6 @@ protected:
 	void _Alias_move_construct_from(_Ptr_base<_Ty2>&& _Right, _Elem_type* _Px) noexcept
 	{
 		this->_Ptr = _Px;
-		this->_Rep = _Right._Rep;
-		_Right._Ptr = nullptr;
-		_Right._Rep = nullptr;
-	}
-
-	template <typename _Ty2>
-	void _Alias_move_construct_from(_Ptr_base<_Ty2>&& _Right) noexcept
-	{
-		this->_Ptr = static_cast<_Ptr_base<_Ty>::_Elem_type*>(_Right._Ptr);
 		this->_Rep = _Right._Rep;
 		_Right._Ptr = nullptr;
 		_Right._Rep = nullptr;
@@ -279,15 +253,15 @@ public:
 		return *this;
 	}
 
-	template <typename _Ty2>
-	shared_ptr& operator=(const shared_ptr<_Ty2>& _Other) noexcept
+	template <typename _Uy>
+	shared_ptr& operator=(const shared_ptr<_Uy>& _Other) noexcept
 	{
 		shared_ptr(_Other).swap(*this);
 		return *this;
 	}
 
-	template <typename _Ty2>
-	shared_ptr& operator=(shared_ptr<_Ty2>&& _Right) noexcept
+	template <typename _Uy>
+	shared_ptr& operator=(shared_ptr<_Uy>&& _Right) noexcept
 	{
 		shared_ptr(std::move(_Right)).swap(*this);
 		return *this;
@@ -318,3 +292,184 @@ shared_ptr<_Ty> make_shared(_Args&& ..._Right) noexcept
 {
 	return shared_ptr<_Ty>(new _Ty(std::forward<_Args>(_Right)...));
 }
+
+template <typename _Ty1, typename _Ty2>
+_NODISCARD bool operator==(const shared_ptr<_Ty1>& _Left, const shared_ptr<_Ty2>& _Right) noexcept
+{
+	return _Left.get() == _Right.get();
+}
+
+template <typename _Ty1, typename _Ty2>
+_NODISCARD bool operator<(const shared_ptr<_Ty1>& _Left, const shared_ptr<_Ty2>& _Right) noexcept
+{
+	return _Left.get() < _Right.get();
+}
+
+template <typename _Ty1, typename _Ty2>
+_NODISCARD bool operator<=(const shared_ptr<_Ty1>& _Left, const shared_ptr<_Ty2>& _Right) noexcept
+{
+	return _Left.get() <= _Right.get();
+}
+
+template <typename _Ty1, typename _Ty2>
+_NODISCARD bool operator>(const shared_ptr<_Ty1>& _Left, const shared_ptr<_Ty2>& _Right) noexcept
+{
+	return _Left.get() > _Right.get();
+}
+
+template <typename _Ty1, typename _Ty2>
+_NODISCARD bool operator>=(const shared_ptr<_Ty1>& _Left, const shared_ptr<_Ty2>& _Right) noexcept
+{
+	return _Left.get() >= _Right.get();
+}
+
+template <typename _Ty>
+_NODISCARD bool operator==(const shared_ptr<_Ty>& _Left, nullptr_t) noexcept
+{
+	return _Left.get() == nullptr;
+}
+
+template <typename _Ty>
+_NODISCARD bool operator==(nullptr_t, const shared_ptr<_Ty>& _Right) noexcept
+{
+	return nullptr == _Right.get();
+}
+
+template <class _Ty>
+_NODISCARD bool operator!=(const shared_ptr<_Ty>& _Left, nullptr_t) noexcept 
+{
+	return _Left.get() != nullptr;
+}
+
+template <class _Ty>
+_NODISCARD bool operator!=(nullptr_t, const shared_ptr<_Ty>& _Right) noexcept 
+{
+	return nullptr != _Right.get();
+}
+
+template <class _Ty>
+_NODISCARD bool operator<(const shared_ptr<_Ty>& _Left, nullptr_t) noexcept 
+{
+	return _Left.get() < static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr);
+}
+
+template <class _Ty>
+_NODISCARD bool operator<(nullptr_t, const shared_ptr<_Ty>& _Right) noexcept 
+{
+	return static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr) < _Right.get();
+}
+
+template <class _Ty>
+_NODISCARD bool operator>=(const shared_ptr<_Ty>& _Left, nullptr_t) noexcept 
+{
+	return _Left.get() >= static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr);
+}
+
+template <class _Ty>
+_NODISCARD bool operator>=(nullptr_t, const shared_ptr<_Ty>& _Right) noexcept 
+{
+	return static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr) >= _Right.get();
+}
+
+template <class _Ty>
+_NODISCARD bool operator>(const shared_ptr<_Ty>& _Left, nullptr_t) noexcept 
+{
+	return _Left.get() > static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr);
+}
+
+template <class _Ty>
+_NODISCARD bool operator>(nullptr_t, const shared_ptr<_Ty>& _Right) noexcept 
+{
+	return static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr) > _Right.get();
+}
+
+template <class _Ty>
+_NODISCARD bool operator<=(const shared_ptr<_Ty>& _Left, nullptr_t) noexcept 
+{
+	return _Left.get() <= static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr);
+}
+
+template <class _Ty>
+_NODISCARD bool operator<=(nullptr_t, const shared_ptr<_Ty>& _Right) noexcept 
+{
+	return static_cast<typename shared_ptr<_Ty>::_Elem_type*>(nullptr) <= _Right.get();
+}
+
+template <class _Ty>
+void swap(shared_ptr<_Ty>& _Left, shared_ptr<_Ty>& _Right) noexcept 
+{
+	_Left.swap(_Right);
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> static_pointer_cast(const shared_ptr<_Ty2>& _Other) noexcept 
+{
+	const auto _Ptr = static_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+	return shared_ptr<_Ty1>(_Other, _Ptr);
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> static_pointer_cast(shared_ptr<_Ty2>&& _Other) noexcept 
+{
+	const auto _Ptr = static_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+	return shared_ptr<_Ty1>(_STD move(_Other), _Ptr);
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> const_pointer_cast(const shared_ptr<_Ty2>& _Other) noexcept 
+{
+	const auto _Ptr = const_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+	return shared_ptr<_Ty1>(_Other, _Ptr);
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> const_pointer_cast(shared_ptr<_Ty2>&& _Other) noexcept 
+{
+	const auto _Ptr = const_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+	return shared_ptr<_Ty1>(_STD move(_Other), _Ptr);
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> reinterpret_pointer_cast(const shared_ptr<_Ty2>& _Other) noexcept 
+{
+	const auto _Ptr = reinterpret_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+	return shared_ptr<_Ty1>(_Other, _Ptr);
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> reinterpret_pointer_cast(shared_ptr<_Ty2>&& _Other) noexcept 
+{
+	const auto _Ptr = reinterpret_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+	return shared_ptr<_Ty1>(_STD move(_Other), _Ptr);
+}
+
+#ifdef _CPPRTTI
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> dynamic_pointer_cast(const shared_ptr<_Ty2>& _Other) noexcept 
+{
+	const auto _Ptr = dynamic_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+
+	if (_Ptr) {
+		return shared_ptr<_Ty1>(_Other, _Ptr);
+	}
+
+	return {};
+}
+
+template <class _Ty1, class _Ty2>
+_NODISCARD shared_ptr<_Ty1> dynamic_pointer_cast(shared_ptr<_Ty2>&& _Other) noexcept 
+{
+	const auto _Ptr = dynamic_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
+
+	if (_Ptr) {
+		return shared_ptr<_Ty1>(_STD move(_Other), _Ptr);
+	}
+
+	return {};
+}
+#else // _CPPRTTI
+template <class _Ty1, class _Ty2>
+shared_ptr<_Ty1> dynamic_pointer_cast(const shared_ptr<_Ty2>&) noexcept = delete; // requires /GR option
+template <class _Ty1, class _Ty2>
+shared_ptr<_Ty1> dynamic_pointer_cast(shared_ptr<_Ty2>&&) noexcept = delete; // requires /GR option
+#endif // _CPPRTTI
