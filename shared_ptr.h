@@ -74,17 +74,17 @@ public:
 	
 	_NODISCARD long use_count() const noexcept
 	{
-		return nullptr == _Rep ? 0 : _Rep->_Use_count();
+		return nullptr == this->_Rep ? 0 : this->_Rep->_Use_count();
 	}
 
 	_NODISCARD _Elem_type* get() const noexcept
 	{
-		return _Ptr;
+		return this->_Ptr;
 	}
 
 	explicit operator bool() const noexcept
 	{
-		return _Ptr != nullptr;
+		return this->_Ptr != nullptr;
 	}
 
 	_NODISCARD bool unique() const noexcept
@@ -103,17 +103,27 @@ public:
 	}
 protected:
 	constexpr _Ptr_base() noexcept = default;
-	virtual ~_Ptr_base() = default;
+	virtual ~_Ptr_base()
+	{
+		if (nullptr != this->_Rep)
+		{
+			if (this->_Rep->_Use_count() == 0)
+			{
+				delete this->_Rep;
+				this->_Rep = nullptr;
+			}
+		}
+	}
 
 	void _Set_enable_shared() 
 	{
 		try
 		{
-			_Rep = new _Ref_count_base();
+			this->_Rep = new _Ref_count_base();
 		}
 		catch (std::bad_alloc&)
 		{
-			_Rep = nullptr;
+			this->_Rep = nullptr;
 			throw;
 		}
 	}
@@ -160,17 +170,17 @@ protected:
 
 	void _Incref() const
 	{
-		if (nullptr != _Rep)
+		if (nullptr != this->_Rep)
 		{
-			_Rep->_Incwref(this->_Ptr);
+			this->_Rep->_Incwref(this->_Ptr);
 		}
 	}
 
 	void _Decref() noexcept
 	{
-		if (nullptr != _Rep)
+		if (nullptr != this->_Rep)
 		{
-			_Rep->_Decwref(this->_Ptr);
+			this->_Rep->_Decwref(this->_Ptr);
 		}
 	}
 
@@ -449,7 +459,8 @@ _NODISCARD shared_ptr<_Ty1> dynamic_pointer_cast(const shared_ptr<_Ty2>& _Other)
 {
 	const auto _Ptr = dynamic_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
 
-	if (_Ptr) {
+	if (_Ptr) 
+	{
 		return shared_ptr<_Ty1>(_Other, _Ptr);
 	}
 
@@ -461,7 +472,8 @@ _NODISCARD shared_ptr<_Ty1> dynamic_pointer_cast(shared_ptr<_Ty2>&& _Other) noex
 {
 	const auto _Ptr = dynamic_cast<typename shared_ptr<_Ty1>::_Elem_type*>(_Other.get());
 
-	if (_Ptr) {
+	if (_Ptr) 
+	{
 		return shared_ptr<_Ty1>(_STD move(_Other), _Ptr);
 	}
 
